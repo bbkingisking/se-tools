@@ -1605,7 +1605,42 @@ def _build_kindle(self, work_dir: Path, work_compatible_epub_dir: Path, output_d
 		kindle_cover_thumbnail_image = kindle_cover_thumbnail_image.resize((432, 648))
 		kindle_cover_thumbnail_image.save(output_dir / f"thumbnail_{asin}_EBOK_portrait.jpg")
 
-def build(self, run_epubcheck: bool, check_only: bool, build_kobo: bool, build_kindle: bool, output_dir: Path, proof: bool) -> None:
+def _build_pdf(self, work_dir: Path, work_compatible_epub_dir: Path, output_dir: Path, pdf_output_filename: str, metadata_dom: se.easy_xml.EasyXmlTree, compatible_epub_output_filename: str, ebook_convert_path: Path | None, last_updated: datetime | None) -> None:
+	"""
+	Build the PDF file using calibre's ebook-convert.
+
+	INPUTS
+	work_dir: Path to the temporary working directory.
+	work_compatible_epub_dir: Path to the compatibility epub file in the temporary working directory.
+	output_dir: Path to the output directory where pdf files are to be created.
+	pdf_output_filename: Name of the PDF output file.
+	metadata_dom: dom of the metadata file.
+	compatible_epub_output_filename: Name of the compatible epub file.
+	ebook_convert_path: Path to the calibre `ebook-convert` command.
+	last_updated: timestamp of the last commit date.
+
+	OUTPUTS
+	None.
+	"""
+
+	# Path arguments must be cast to string for Windows compatibility.
+	try:
+		# Request higher-quality rasterization and preserve the cover aspect ratio.
+		# keeps the cover from being stretched on the first PDF page.
+		calibre_args = [
+			str(ebook_convert_path),
+			str(work_dir / compatible_epub_output_filename),
+			str(output_dir / pdf_output_filename),
+			"--preserve-cover-aspect-ratio",
+			"--pretty-print",
+		]
+		calibre_result = subprocess.run(calibre_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False)
+		calibre_result.check_returncode()
+	except subprocess.CalledProcessError as ex:
+		output = calibre_result.stdout.decode().strip() # pyright: ignore # `calibre_result` is always bound because this exception is thrown from `calibre_result.check_returncode()`.
+		raise se.BuildFailedException(f"[bash]ebook-convert[/] failed with:\n{output}") from ex
+
+def build(self, run_epubcheck: bool, check_only: bool, build_kobo: bool, build_kindle: bool, build_pdf: bool, output_dir: Path, proof: bool) -> None:
 	"""
 	Entry point for `se build`.
 	"""
@@ -1619,7 +1654,7 @@ def build(self, run_epubcheck: bool, check_only: bool, build_kobo: bool, build_k
 
 	# Check for some required tools.
 	ebook_convert_path = None
-	if build_kindle:
+	if build_kindle or build_pdf:
 		which_ebook_convert = shutil.which("ebook-convert")
 		if which_ebook_convert:
 			ebook_convert_path = Path(which_ebook_convert)
@@ -1682,6 +1717,7 @@ def build(self, run_epubcheck: bool, check_only: bool, build_kobo: bool, build_k
 
 	compatible_epub_output_filename = f"{identifier}{'.proof' if proof else ''}.epub"
 	advanced_epub_output_filename = f"{identifier}{'.proof' if proof else ''}_advanced.epub"
+	pdf_output_filename = f"{identifier}{'.proof' if proof else ''}.pdf"
 	kobo_output_filename = f"{identifier}{'.proof' if proof else ''}.kepub.epub"
 	kindle_output_filename = f"{identifier}{'.proof' if proof else ''}.azw3"
 	endnote_files_to_be_chunked: list[Path] = []
@@ -1810,6 +1846,8 @@ def build(self, run_epubcheck: bool, check_only: bool, build_kobo: bool, build_k
 
 		if build_kindle:
 			_build_kindle(self, work_dir, work_compatible_epub_dir, output_dir, kindle_output_filename, toc_filename, metadata_dom, compatible_epub_output_filename, ebook_convert_path, asin, last_updated)
+		if build_pdf:
+			_build_pdf(self, work_dir, work_compatible_epub_dir, output_dir, pdf_output_filename, metadata_dom, compatible_epub_output_filename, ebook_convert_path, last_updated)
 
 	# Build is all done!
 	# Since we made heavy changes to the ebook's DOM, flush the DOM cache in case we use this class again.

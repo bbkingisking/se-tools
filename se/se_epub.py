@@ -1870,14 +1870,14 @@ class SeEpub:
 
 		return lint(self, skip_lint_ignore, allowed_messages)
 
-	def build(self, run_epubcheck: bool, check_only: bool, build_kobo: bool, build_kindle: bool, output_directory: Path, proof: bool) -> None:
+	def build(self, run_epubcheck: bool, check_only: bool, build_kobo: bool, build_kindle: bool, build_pdf: bool, output_directory: Path, proof: bool) -> None:
 		"""
 		The `self.build()` function is very big so for readability and maintainability it's broken out to a separate file. Strictly speaking that file can be inlined into this class.
 		"""
 
 		from se.se_epub_build import build # pylint: disable=import-outside-toplevel
 
-		build(self, run_epubcheck, check_only, build_kobo, build_kindle, output_directory, proof)
+		build(self, run_epubcheck, check_only, build_kobo, build_kindle, build_pdf, output_directory, proof)
 
 	def generate_toc(self) -> str:
 		"""

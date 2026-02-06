@@ -23,6 +23,7 @@ def build(plain_output: bool) -> int:
 	parser.add_argument("-b", "--kobo", dest="build_kobo", action="store_true", help="also build a .kepub.epub file for Kobo")
 	parser.add_argument("-c", "--check", action="store_true", help="use epubcheck to validate the compatible .epub file, and the Nu Validator (v.Nu) to validate XHTML5; if Ace is installed, also validate using Ace; if --kindle is also specified and epubcheck, v.Nu, or Ace fail, don’t create a Kindle file")
 	parser.add_argument("-k", "--kindle", dest="build_kindle", action="store_true", help="also build an .azw3 file for Kindle")
+	parser.add_argument("--pdf", dest="build_pdf", action="store_true", help="also build a .pdf file using calibre from the source")
 	parser.add_argument("-o", "--output-dir", metavar="DIRECTORY", type=str, default="", help="a directory to place output files in; will be created if it doesn’t exist")
 	parser.add_argument("-p", "--proof", dest="proof", action="store_true", help="insert additional CSS rules that are helpful for proofreading; output filenames will end in .proof")
 	parser.add_argument("-v", "--verbose", action="store_true", help="increase output verbosity")
@@ -39,7 +40,7 @@ def build(plain_output: bool) -> int:
 	# If we're called from Parallel, there is no width because Parallel is not a terminal. Thus we must export `$COLUMNS` before invoking Parallel, and then get that value here.
 	console = Console(width=int(os.environ["COLUMNS"]) if called_from_parallel and "COLUMNS" in os.environ else None, highlight=False, theme=se.RICH_THEME, force_terminal=force_terminal) # Syntax highlighting will do weird things when printing paths; `force_terminal` prints colors when called from GNU Parallel.
 
-	if args.check_only and (args.check or args.build_kindle or args.build_kobo or args.proof or args.output_dir):
+	if args.check_only and (args.check or args.build_kindle or args.build_kobo or args.build_pdf or args.proof or args.output_dir):
 		se.print_error("The [bash]--check-only[/] option can’t be combined with any other flags except for [bash]--verbose[/].", plain_output=plain_output)
 		return se.InvalidArgumentsException.code
 
@@ -52,7 +53,8 @@ def build(plain_output: bool) -> int:
 
 		try:
 			se_epub = SeEpub(directory)
-			se_epub.build(args.check, args.check_only, args.build_kobo, args.build_kindle, Path(args.output_dir), args.proof)
+			# Pass the new --pdf flag through to the build pipeline so backends that support PDF generation can act on it.
+			se_epub.build(args.check, args.check_only, args.build_kobo, args.build_kindle, args.build_pdf, Path(args.output_dir), args.proof)
 		except se.BuildFailedException as ex:
 			exception = ex
 			messages = ex.messages
