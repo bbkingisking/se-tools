@@ -3920,12 +3920,12 @@ def lint(self, skip_lint_ignore: bool, allowed_messages: list[str] | None = None
 				# Get the original file from the cache.
 				svg_dom = self.get_dom(file_path)
 				messages += _lint_svg_checks(self, source_file, svg_dom, root)
-				if self.cover_path and file_path.name == self.cover_path.name:
-					# For later comparison with titlepage.
-					cover_svg_title = svg_dom.xpath("/svg/title/text()", True).replace("The cover for ", "") # `<title>` can appear on any element in SVG, but we only want to check the root one.
-				elif file_path.name == "titlepage.svg":
-					# For later comparison with cover.
-					titlepage_svg_title = svg_dom.xpath("/svg/title/text()", True).replace("The titlepage for ", "") # `<title>` can appear on any element in SVG, but we only want to check the root one.
+				# if self.cover_path and file_path.name == self.cover_path.name:
+				# 	# For later comparison with titlepage.
+				# 	cover_svg_title = svg_dom.xpath("/svg/title/text()", True).replace("The cover for ", "") # `<title>` can appear on any element in SVG, but we only want to check the root one.
+				# elif file_path.name == "titlepage.svg":
+				# 	# For later comparison with cover.
+				# 	titlepage_svg_title = svg_dom.xpath("/svg/title/text()", True).replace("The titlepage for ", "") # `<title>` can appear on any element in SVG, but we only want to check the root one.
 
 			if file_path.suffix == ".xml":
 				xml_dom = self.get_dom(file_path)
